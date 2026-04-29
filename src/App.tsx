@@ -853,7 +853,7 @@ export default function App() {
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all text-sm text-gray-500 hover:bg-gray-50"
                       >
                         <Settings size={18} />
-                        Settings API Key
+                        API
                       </button>
                       
                       {loginError && (
@@ -1854,7 +1854,7 @@ export default function App() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold flex items-center gap-2">
                     <Settings className="text-[#6366F1]" />
-                    Settings
+                    API
                   </h3>
                   <button onClick={() => setShowSettingsModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
                     <X size={20} />
