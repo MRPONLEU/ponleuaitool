@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User role and info",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "Template": {
+      "title": "Template",
+      "description": "Image generation template with prompt and thumbnail",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "prompt": { "type": "string" },
+        "thumbnail": { "type": "string", "description": "Base64 encoded thumbnail image or URL" },
+        "reference_image": { "type": "string", "description": "Base64 encoded reference image or URL" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["name", "prompt", "createdAt", "updatedAt", "createdBy"]
+    },
+    "HistoryItem": {
+      "title": "HistoryItem",
+      "description": "A record of a generated image",
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "prompt": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["url", "prompt", "timestamp", "userId"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Global application setting",
+      "type": "object",
+      "properties": {
+        "showCustomPromptArea": { "type": "boolean" }
+      }
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User's CV information and preferences",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "cvData": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "cvData", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "Collection of users and their roles"
+    },
+    "templates": {
+      "schema": "Template",
+      "description": "Collection of image generation templates"
+    },
+    "history": {
+      "schema": "HistoryItem",
+      "description": "Collection of generated image history"
+    },
+    "settings": {
+      "schema": "Setting",
+      "description": "Collection of global application settings"
+    },
+    "profiles": {
+      "schema": "UserProfile",
+      "description": "Collection of user's CV data and profiles"
+    }
+  }
+}

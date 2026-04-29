@@ -1,0 +1,107 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitives & Global Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { 
+      return isSignedIn() && (
+        request.auth.token.email.lower() == "henrythonny@gmail.com".lower() ||
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Validation Blueprints
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
+             data.keys().size() == 4 &&
+             data.uid == request.auth.uid &&
+             data.email == request.auth.token.email &&
+             data.role in ['admin', 'user'] &&
+             data.createdAt == request.time;
+    }
+
+    function isValidTemplate(data) {
+      return data.keys().hasAll(['name', 'prompt', 'createdAt', 'updatedAt', 'createdBy']) &&
+             data.keys().size() <= 7 && // name, prompt, thumbnail, reference_image, createdAt, updatedAt, createdBy
+             data.name is string && data.name.size() <= 256 &&
+             data.prompt is string && data.prompt.size() <= 5000 &&
+             (data.get('thumbnail', null) == null || (data.thumbnail is string && data.thumbnail.size() <= 1048576)) &&
+             (data.get('reference_image', null) == null || (data.reference_image is string && data.reference_image.size() <= 1048576)) &&
+             data.createdBy == request.auth.uid &&
+             data.createdAt == request.time &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidHistory(data) {
+      return data.keys().hasAll(['url', 'prompt', 'timestamp', 'userId']) &&
+             data.keys().size() == 4 &&
+             data.url is string && data.url.size() <= 1048576 &&
+             data.prompt is string && data.prompt.size() <= 5000 &&
+             data.timestamp == request.time &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidSetting(data) {
+      return data.keys().size() >= 1 &&
+             (data.get('showCustomPromptArea', null) == null || data.showCustomPromptArea is bool);
+    }
+
+    function isValidProfile(data) {
+      return data.keys().hasAll(['userId', 'cvData', 'updatedAt']) &&
+             data.keys().size() == 3 &&
+             data.userId == request.auth.uid &&
+             data.cvData is map &&
+             data.updatedAt == request.time;
+    }
+
+    // Collection Rules
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidUser(incoming()) && 
+                      (incoming().role == 'user' || (incoming().role == 'admin' && request.auth.token.email.lower() == "henrythonny@gmail.com".lower()));
+      allow update: if (isAdmin() || (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['email']))) && 
+                      (isAdmin() || incoming().role == existing().role);
+    }
+
+    match /templates/{templateId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidTemplate(incoming()) && isValidId(templateId);
+      allow update: if (isAdmin() || (isSignedIn() && existing().createdBy == request.auth.uid)) &&
+                      isValidTemplate(incoming()) &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().createdBy == existing().createdBy &&
+                      incoming().diff(existing()).affectedKeys().hasAny(['name', 'prompt', 'thumbnail', 'reference_image', 'updatedAt']);
+      allow delete: if isAdmin() || (isSignedIn() && existing().createdBy == request.auth.uid);
+    }
+
+    match /history/{historyId} {
+      // Secure List Query: Enforce userId check
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidHistory(incoming()) && isValidId(historyId);
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSetting(incoming()) && isValidId(settingId);
+    }
+
+    match /profiles/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) && isValidProfile(incoming()) && isValidId(userId);
+    }
+  }
+}

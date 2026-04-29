@@ -1,0 +1,5 @@
+{
+  "name": "PONLEU-AI",
+  "description": "កម្មវិធីបង្កើតរូបភាពដោយប្រើ Gemini AI ជាមួយ Template Prompt",
+  "requestFramePermissions": []
+}
