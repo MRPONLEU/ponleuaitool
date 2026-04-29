@@ -132,10 +132,20 @@ export default function App() {
 
   useEffect(() => {
     const checkKey = async () => {
+      // If we have a hardcoded key from build time that isn't the placeholder, 
+      // we're good (this happens in deployed apps)
+      const buildTimeKey = process.env.GEMINI_API_KEY;
+      if (buildTimeKey && buildTimeKey !== "MY_GEMINI_API_KEY" && buildTimeKey !== "") {
+        setCheckingApiKey(false);
+        return;
+      }
+
       if (localStorage.getItem('skip_api_key_prompt')) {
         setCheckingApiKey(false);
         return;
       }
+
+      // In AI Studio Preview, use the bridge to check if a secret is selected
       if (typeof window !== 'undefined' && 'aistudio' in window) {
         try {
           const hasKey = await (window as any).aistudio.hasSelectedApiKey();
